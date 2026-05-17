@@ -1,0 +1,973 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GoldVault — Pawn Broker Billing</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Nunito:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --gold: #d4a843;
+    --gold-light: #f0c96b;
+    --gold-dark: #9a7120;
+    --gold-dim: rgba(212,168,67,0.15);
+    --bg: #0a0a0a;
+    --bg2: #111111;
+    --bg3: #1a1a1a;
+    --bg4: #222222;
+    --text: #e8e0cc;
+    --text-dim: #888;
+    --danger: #e05555;
+    --success: #4caf7d;
+    --border: rgba(212,168,67,0.2);
+    --border-bright: rgba(212,168,67,0.5);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Nunito', sans-serif;
+    min-height: 100vh;
+    display: flex;
+  }
+
+  /* SIDEBAR */
+  .sidebar {
+    width: 240px;
+    min-height: 100vh;
+    background: var(--bg2);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
+    z-index: 100;
+    transition: transform 0.3s;
+  }
+  .sidebar-logo {
+    padding: 24px 20px 20px;
+    border-bottom: 1px solid var(--border);
+  }
+  .logo-icon { font-size: 28px; }
+  .logo-title {
+    font-family: 'Cinzel', serif;
+    font-size: 18px;
+    color: var(--gold);
+    letter-spacing: 2px;
+    margin-top: 4px;
+  }
+  .logo-sub { font-size: 10px; color: var(--text-dim); letter-spacing: 3px; text-transform: uppercase; }
+  .nav { padding: 16px 0; flex: 1; }
+  .nav-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 20px;
+    cursor: pointer;
+    color: var(--text-dim);
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    border-left: 3px solid transparent;
+    transition: all 0.2s;
+    user-select: none;
+  }
+  .nav-item:hover { color: var(--gold-light); background: var(--gold-dim); }
+  .nav-item.active { color: var(--gold); background: var(--gold-dim); border-left-color: var(--gold); }
+  .nav-icon { width: 18px; text-align: center; font-size: 16px; }
+  .sidebar-footer {
+    padding: 16px 20px;
+    border-top: 1px solid var(--border);
+    font-size: 11px;
+    color: var(--text-dim);
+  }
+
+  /* MAIN */
+  .main {
+    margin-left: 240px;
+    flex: 1;
+    min-height: 100vh;
+    background: var(--bg);
+  }
+  .topbar {
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+    padding: 16px 28px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky; top: 0; z-index: 50;
+  }
+  .topbar-title {
+    font-family: 'Cinzel', serif;
+    font-size: 20px;
+    color: var(--gold);
+    letter-spacing: 1px;
+  }
+  .topbar-date { font-size: 13px; color: var(--text-dim); }
+  .hamburger {
+    display: none; background: none; border: none; cursor: pointer;
+    color: var(--gold); font-size: 22px;
+  }
+  .content { padding: 28px; }
+
+  /* CARDS */
+  .stat-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px,1fr));
+    gap: 16px;
+    margin-bottom: 28px;
+  }
+  .stat-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 22px;
+    position: relative;
+    overflow: hidden;
+  }
+  .stat-card::before {
+    content:''; position:absolute; top:0; left:0; right:0; height:2px;
+    background: linear-gradient(90deg, var(--gold-dark), var(--gold), var(--gold-dark));
+  }
+  .stat-label { font-size: 11px; text-transform: uppercase; letter-spacing: 2px; color: var(--text-dim); }
+  .stat-value { font-family: 'Cinzel', serif; font-size: 28px; color: var(--gold); margin: 6px 0 2px; }
+  .stat-icon { position:absolute; right:18px; top:18px; font-size:28px; opacity:0.15; }
+
+  /* SECTION */
+  .section { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; margin-bottom: 24px; overflow: hidden; }
+  .section-header {
+    padding: 16px 22px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .section-title { font-family: 'Cinzel', serif; font-size: 15px; color: var(--gold); letter-spacing: 1px; }
+  .section-body { padding: 22px; }
+
+  /* FORM */
+  .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px,1fr)); gap: 18px; }
+  .form-group { display: flex; flex-direction: column; gap: 6px; }
+  .form-group.full { grid-column: 1/-1; }
+  label { font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--gold-dark); font-weight: 700; }
+  input, select, textarea {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: 'Nunito', sans-serif;
+    font-size: 14px;
+    padding: 10px 14px;
+    outline: none;
+    transition: border 0.2s, box-shadow 0.2s;
+  }
+  input:focus, select:focus, textarea:focus {
+    border-color: var(--gold);
+    box-shadow: 0 0 0 3px rgba(212,168,67,0.1);
+  }
+  input[readonly] { color: var(--gold); font-weight: 700; cursor: default; }
+  select option { background: var(--bg3); }
+
+  /* BUTTONS */
+  .btn {
+    padding: 10px 22px; border-radius: 8px; font-family: 'Nunito', sans-serif;
+    font-size: 13px; font-weight: 700; cursor: pointer; border: none;
+    letter-spacing: 1px; transition: all 0.2s; text-transform: uppercase; display: inline-flex; align-items: center; gap: 7px;
+  }
+  .btn-gold {
+    background: linear-gradient(135deg, var(--gold-dark), var(--gold));
+    color: #0a0a0a;
+  }
+  .btn-gold:hover { background: linear-gradient(135deg, var(--gold), var(--gold-light)); transform: translateY(-1px); box-shadow: 0 4px 16px rgba(212,168,67,0.3); }
+  .btn-outline {
+    background: transparent; border: 1px solid var(--gold); color: var(--gold);
+  }
+  .btn-outline:hover { background: var(--gold-dim); }
+  .btn-danger { background: rgba(224,85,85,0.15); border: 1px solid rgba(224,85,85,0.4); color: var(--danger); }
+  .btn-danger:hover { background: rgba(224,85,85,0.25); }
+  .btn-success { background: rgba(76,175,125,0.15); border: 1px solid rgba(76,175,125,0.4); color: var(--success); }
+  .btn-success:hover { background: rgba(76,175,125,0.25); }
+  .btn-sm { padding: 6px 14px; font-size: 11px; }
+  .btn-group { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 8px; }
+
+  /* TABLE */
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead tr { border-bottom: 2px solid var(--border-bright); }
+  th {
+    text-align: left; padding: 12px 14px;
+    font-family: 'Cinzel', serif; font-size: 11px;
+    letter-spacing: 1.5px; color: var(--gold); text-transform: uppercase;
+  }
+  td { padding: 12px 14px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+  tr:hover td { background: var(--gold-dim); }
+  .badge {
+    display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700;
+    letter-spacing: 0.5px;
+  }
+  .badge-active { background: rgba(212,168,67,0.15); color: var(--gold); border: 1px solid rgba(212,168,67,0.3); }
+  .badge-paid { background: rgba(76,175,125,0.15); color: var(--success); border: 1px solid rgba(76,175,125,0.3); }
+  .badge-overdue { background: rgba(224,85,85,0.15); color: var(--danger); border: 1px solid rgba(224,85,85,0.3); }
+
+  /* SEARCH */
+  .search-bar { position: relative; }
+  .search-bar input { padding-left: 36px; width: 280px; }
+  .search-icon { position:absolute; left:12px; top:50%; transform:translateY(-50%); color:var(--text-dim); font-size:14px; }
+
+  /* INTEREST CALC */
+  .calc-result {
+    background: var(--bg3);
+    border: 1px solid var(--border-bright);
+    border-radius: 10px;
+    padding: 18px 22px;
+    margin-top: 18px;
+  }
+  .calc-row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--border); font-size: 14px; }
+  .calc-row:last-child { border-bottom: none; font-size: 16px; font-weight: 700; color: var(--gold); }
+  .calc-label { color: var(--text-dim); }
+
+  /* PAGE VISIBILITY */
+  .page { display: none; }
+  .page.active { display: block; }
+
+  /* RECEIPT PRINT AREA */
+  .receipt-card {
+    background: var(--bg2);
+    border: 2px solid var(--border-bright);
+    border-radius: 16px;
+    max-width: 520px;
+    margin: 0 auto;
+    padding: 32px;
+  }
+  .receipt-header { text-align: center; border-bottom: 2px dashed var(--border); padding-bottom: 20px; margin-bottom: 20px; }
+  .receipt-logo { font-family: 'Cinzel', serif; font-size: 24px; color: var(--gold); }
+  .receipt-sub { font-size: 12px; color: var(--text-dim); letter-spacing: 3px; }
+  .receipt-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+  .receipt-total { display: flex; justify-content: space-between; padding: 12px 0 0; font-size: 18px; font-weight: 700; color: var(--gold); font-family: 'Cinzel', serif; }
+  .receipt-footer { text-align: center; margin-top: 20px; font-size: 11px; color: var(--text-dim); }
+
+  /* MODAL */
+  .modal-overlay {
+    display: none; position:fixed; inset:0;
+    background: rgba(0,0,0,0.8); z-index:200;
+    align-items: center; justify-content: center; padding: 20px;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--bg2); border: 1px solid var(--border-bright);
+    border-radius: 16px; max-width: 600px; width: 100%;
+    max-height: 90vh; overflow-y: auto; padding: 28px;
+  }
+  .modal-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; }
+  .modal-title { font-family:'Cinzel',serif; color:var(--gold); font-size:17px; }
+  .modal-close { background:none; border:none; color:var(--text-dim); font-size:22px; cursor:pointer; }
+  .modal-close:hover { color: var(--danger); }
+
+  /* TOAST */
+  .toast-container { position:fixed; bottom:24px; right:24px; z-index:999; display:flex; flex-direction:column; gap:10px; }
+  .toast {
+    background:var(--bg3); border-left: 4px solid var(--gold); border-radius:8px;
+    padding:12px 18px; font-size:13px; color:var(--text);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    animation: toastIn 0.3s ease;
+  }
+  .toast.error { border-left-color: var(--danger); }
+  .toast.success { border-left-color: var(--success); }
+  @keyframes toastIn { from { transform:translateX(100px); opacity:0; } to { transform:none; opacity:1; } }
+
+  /* REPORT CHART */
+  .report-grid { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
+  .report-card { background:var(--bg3); border:1px solid var(--border); border-radius:10px; padding:18px; }
+  .bar-chart { display:flex; flex-direction:column; gap:10px; margin-top:12px; }
+  .bar-row { display:flex; align-items:center; gap:10px; font-size:12px; }
+  .bar-label { width:80px; color:var(--text-dim); text-align:right; }
+  .bar-track { flex:1; background:var(--bg4); border-radius:4px; height:22px; position:relative; overflow:hidden; }
+  .bar-fill { height:100%; border-radius:4px; background: linear-gradient(90deg, var(--gold-dark), var(--gold)); transition: width 0.7s; }
+  .bar-val { position:absolute; right:8px; top:50%; transform:translateY(-50%); font-size:11px; font-weight:700; color:#0a0a0a; }
+
+  /* MOBILE */
+  @media(max-width:768px) {
+    .sidebar { transform: translateX(-100%); }
+    .sidebar.open { transform: translateX(0); }
+    .main { margin-left: 0; }
+    .hamburger { display: block; }
+    .report-grid { grid-template-columns: 1fr; }
+    .form-grid { grid-template-columns: 1fr; }
+    .stat-grid { grid-template-columns: 1fr 1fr; }
+  }
+
+  @media print {
+    .sidebar, .topbar, .btn, .nav, .non-print { display: none !important; }
+    .main { margin: 0; }
+    body { background: white; color: black; }
+    .receipt-card { border: 2px solid #000; color: black; background: white; }
+    .receipt-logo, .receipt-total { color: #9a7120; }
+  }
+
+  .divider { height:1px; background: linear-gradient(90deg, transparent, var(--border-bright), transparent); margin: 20px 0; }
+  .text-gold { color: var(--gold); }
+  .text-dim { color: var(--text-dim); font-size:12px; }
+  .flex { display:flex; }
+  .gap-10 { gap:10px; }
+  .align-center { align-items:center; }
+  .justify-between { justify-content:space-between; }
+  .mb-16 { margin-bottom:16px; }
+  .mt-16 { margin-top:16px; }
+  .overdue-highlight td { color: var(--danger) !important; }
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-icon">💰</div>
+    <div class="logo-title">GoldVault</div>
+    <div class="logo-sub">Pawn Broker System</div>
+  </div>
+  <div class="nav">
+    <div class="nav-item active" onclick="showPage('dashboard',this)"><span class="nav-icon">📊</span> Dashboard</div>
+    <div class="nav-item" onclick="showPage('newbill',this)"><span class="nav-icon">🧾</span> New Bill</div>
+    <div class="nav-item" onclick="showPage('customers',this)"><span class="nav-icon">👥</span> Customer List</div>
+    <div class="nav-item" onclick="showPage('active',this)"><span class="nav-icon">🔶</span> Active Pawns</div>
+    <div class="nav-item" onclick="showPage('paid',this)"><span class="nav-icon">✅</span> Paid Bills</div>
+    <div class="nav-item" onclick="showPage('receipt',this)"><span class="nav-icon">🖨️</span> Print Receipt</div>
+    <div class="nav-item" onclick="showPage('report',this)"><span class="nav-icon">📈</span> Monthly Report</div>
+  </div>
+  <div class="sidebar-footer">© 2025 GoldVault Billing</div>
+</nav>
+
+<!-- MAIN -->
+<div class="main">
+  <div class="topbar">
+    <button class="hamburger" onclick="toggleSidebar()">☰</button>
+    <div class="topbar-title" id="topbar-title">Dashboard</div>
+    <div class="topbar-date" id="topbar-date"></div>
+  </div>
+
+  <div class="content">
+
+    <!-- DASHBOARD -->
+    <div class="page active" id="page-dashboard">
+      <div class="stat-grid" id="stat-grid"></div>
+      <div class="section">
+        <div class="section-header">
+          <span class="section-title">⚡ Recent Bills</span>
+          <button class="btn btn-outline btn-sm" onclick="showPage('active',document.querySelector('[onclick*=active]'))">View All</button>
+        </div>
+        <div class="section-body">
+          <div class="table-wrap"><table id="dashboard-table">
+            <thead><tr><th>Bill No</th><th>Customer</th><th>Item</th><th>Amount</th><th>Total Due</th><th>Due Date</th><th>Status</th></tr></thead>
+            <tbody id="dashboard-tbody"></tbody>
+          </table></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- NEW BILL -->
+    <div class="page" id="page-newbill">
+      <div class="section">
+        <div class="section-header"><span class="section-title">👤 Customer Details</span></div>
+        <div class="section-body">
+          <div class="form-grid">
+            <div class="form-group"><label>Customer Name *</label><input type="text" id="f-name" placeholder="Full Name" oninput="autocompleteCustomer(this.value)"></div>
+            <div class="form-group"><label>Phone Number *</label><input type="tel" id="f-phone" placeholder="Mobile Number"></div>
+            <div class="form-group full"><label>Address</label><input type="text" id="f-address" placeholder="Street, City"></div>
+            <div class="form-group"><label>ID Proof Number</label><input type="text" id="f-idproof" placeholder="Aadhaar / PAN / Voter ID"></div>
+          </div>
+        </div>
+      </div>
+      <div class="section">
+        <div class="section-header"><span class="section-title">💍 Pawn Details</span></div>
+        <div class="section-body">
+          <div class="form-grid">
+            <div class="form-group"><label>Bill Number</label><input type="text" id="f-billno" readonly></div>
+            <div class="form-group"><label>Item Name *</label><input type="text" id="f-item" placeholder="e.g. Gold Ring, Silver Chain"></div>
+            <div class="form-group"><label>Item Weight (g)</label><input type="number" id="f-weight" placeholder="e.g. 10.5" step="0.01"></div>
+            <div class="form-group"><label>Type</label>
+              <select id="f-type"><option>Gold 22K</option><option>Gold 18K</option><option>Gold 24K</option><option>Silver</option><option>Other</option></select>
+            </div>
+            <div class="form-group"><label>Loan Amount (₹) *</label><input type="number" id="f-amount" placeholder="e.g. 10000" oninput="calcInterest()"></div>
+            <div class="form-group"><label>Interest Rate (% / month) *</label><input type="number" id="f-rate" value="3" step="0.1" oninput="calcInterest()"></div>
+            <div class="form-group"><label>Pawn Date *</label><input type="date" id="f-pawndate" oninput="calcDueDate(); calcInterest()"></div>
+            <div class="form-group"><label>Due Date</label><input type="date" id="f-duedate" oninput="calcInterest()"></div>
+            <div class="form-group"><label>Months (Auto)</label><input type="number" id="f-months" placeholder="Auto calculated" oninput="calcInterest()" min="1"></div>
+          </div>
+          <div class="calc-result" id="calc-result" style="display:none">
+            <div style="font-size:12px;letter-spacing:2px;color:var(--gold-dark);font-weight:700;margin-bottom:12px;">INTEREST CALCULATION</div>
+            <div class="calc-row"><span class="calc-label">Principal (P)</span><span id="cr-p">—</span></div>
+            <div class="calc-row"><span class="calc-label">Rate (R)</span><span id="cr-r">—</span></div>
+            <div class="calc-row"><span class="calc-label">Months (M)</span><span id="cr-m">—</span></div>
+            <div class="calc-row"><span class="calc-label">Interest = P×R×M/100</span><span id="cr-i">—</span></div>
+            <div class="calc-row"><span class="calc-label">💰 Total Amount</span><span id="cr-t">—</span></div>
+          </div>
+          <div class="btn-group mt-16">
+            <button class="btn btn-gold" onclick="saveBill()">💾 Save Bill</button>
+            <button class="btn btn-outline" onclick="clearForm()">🔄 Clear</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CUSTOMERS -->
+    <div class="page" id="page-customers">
+      <div class="section">
+        <div class="section-header">
+          <span class="section-title">👥 Customer List</span>
+          <div class="search-bar"><span class="search-icon">🔍</span><input type="text" placeholder="Search customers..." oninput="searchCustomers(this.value)"></div>
+        </div>
+        <div class="section-body">
+          <div class="table-wrap"><table>
+            <thead><tr><th>Name</th><th>Phone</th><th>Address</th><th>ID Proof</th><th>Bills</th><th>Actions</th></tr></thead>
+            <tbody id="customers-tbody"></tbody>
+          </table></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ACTIVE PAWNS -->
+    <div class="page" id="page-active">
+      <div class="section">
+        <div class="section-header">
+          <span class="section-title">🔶 Active Pawn List</span>
+          <div class="search-bar"><span class="search-icon">🔍</span><input type="text" placeholder="Search bills..." oninput="searchActive(this.value)"></div>
+        </div>
+        <div class="section-body">
+          <div class="table-wrap"><table>
+            <thead><tr><th>Bill No</th><th>Name</th><th>Item</th><th>Type</th><th>Amount</th><th>Interest</th><th>Total</th><th>Pawn Date</th><th>Due Date</th><th>Status</th><th>Actions</th></tr></thead>
+            <tbody id="active-tbody"></tbody>
+          </table></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PAID BILLS -->
+    <div class="page" id="page-paid">
+      <div class="section">
+        <div class="section-header">
+          <span class="section-title">✅ Paid Bills</span>
+          <div class="search-bar"><span class="search-icon">🔍</span><input type="text" placeholder="Search paid..." oninput="searchPaid(this.value)"></div>
+        </div>
+        <div class="section-body">
+          <div class="table-wrap"><table>
+            <thead><tr><th>Bill No</th><th>Name</th><th>Item</th><th>Amount</th><th>Interest</th><th>Total Paid</th><th>Paid Date</th><th>Actions</th></tr></thead>
+            <tbody id="paid-tbody"></tbody>
+          </table></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RECEIPT -->
+    <div class="page" id="page-receipt">
+      <div class="section mb-16">
+        <div class="section-header"><span class="section-title">🖨️ Print Receipt</span></div>
+        <div class="section-body">
+          <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center">
+            <div class="search-bar"><span class="search-icon">🔍</span><input type="text" id="receipt-search" placeholder="Enter Bill Number..." oninput="loadReceipt(this.value)"></div>
+            <button class="btn btn-gold" onclick="printReceipt()">🖨️ Print</button>
+          </div>
+        </div>
+      </div>
+      <div class="receipt-card" id="receipt-area">
+        <div class="receipt-header">
+          <div class="receipt-logo">💰 GoldVault</div>
+          <div class="receipt-sub">PAWN BROKER RECEIPT</div>
+          <div style="font-size:12px;color:var(--text-dim);margin-top:8px" id="rec-date"></div>
+        </div>
+        <div id="receipt-body">
+          <div style="text-align:center;color:var(--text-dim);padding:30px">Enter a bill number above to load receipt</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- REPORT -->
+    <div class="page" id="page-report">
+      <div class="section mb-16">
+        <div class="section-header"><span class="section-title">📈 Monthly Report</span>
+          <div style="display:flex;gap:10px;align-items:center">
+            <select id="report-month" onchange="renderReport()" style="width:auto"></select>
+            <button class="btn btn-outline btn-sm" onclick="downloadReport()">⬇️ Download CSV</button>
+          </div>
+        </div>
+        <div class="section-body" id="report-body"></div>
+      </div>
+      <div class="report-grid" id="report-charts"></div>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /main -->
+
+<!-- EDIT MODAL -->
+<div class="modal-overlay" id="edit-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">✏️ Edit Bill</span>
+      <button class="modal-close" onclick="closeModal('edit-modal')">✕</button>
+    </div>
+    <div class="form-grid" id="edit-form-grid">
+      <div class="form-group"><label>Customer Name</label><input type="text" id="e-name"></div>
+      <div class="form-group"><label>Phone</label><input type="tel" id="e-phone"></div>
+      <div class="form-group full"><label>Address</label><input type="text" id="e-address"></div>
+      <div class="form-group"><label>Item Name</label><input type="text" id="e-item"></div>
+      <div class="form-group"><label>Item Weight (g)</label><input type="number" id="e-weight" step="0.01"></div>
+      <div class="form-group"><label>Type</label>
+        <select id="e-type"><option>Gold 22K</option><option>Gold 18K</option><option>Gold 24K</option><option>Silver</option><option>Other</option></select>
+      </div>
+      <div class="form-group"><label>Loan Amount (₹)</label><input type="number" id="e-amount" oninput="calcEditInterest()"></div>
+      <div class="form-group"><label>Interest Rate (%/month)</label><input type="number" id="e-rate" step="0.1" oninput="calcEditInterest()"></div>
+      <div class="form-group"><label>Pawn Date</label><input type="date" id="e-pawndate" oninput="calcEditInterest()"></div>
+      <div class="form-group"><label>Due Date</label><input type="date" id="e-duedate" oninput="calcEditInterest()"></div>
+    </div>
+    <div class="calc-result" id="e-calc" style="margin-top:16px">
+      <div class="calc-row"><span class="calc-label">Interest</span><span id="e-cr-i">—</span></div>
+      <div class="calc-row"><span class="calc-label">💰 Total</span><span id="e-cr-t">—</span></div>
+    </div>
+    <div class="btn-group mt-16">
+      <button class="btn btn-gold" onclick="saveEdit()">💾 Save Changes</button>
+      <button class="btn btn-outline" onclick="closeModal('edit-modal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast-container" id="toast-container"></div>
+
+<script>
+// ─── DATA STORE ───────────────────────────────────────────────────────────────
+const STORE_KEY = 'goldvault_bills';
+const CUST_KEY  = 'goldvault_customers';
+
+function loadBills() { try { return JSON.parse(localStorage.getItem(STORE_KEY)) || []; } catch { return []; } }
+function saveBills(b) { localStorage.setItem(STORE_KEY, JSON.stringify(b)); }
+function loadCustomers() { try { return JSON.parse(localStorage.getItem(CUST_KEY)) || []; } catch { return []; } }
+function saveCustomers(c) { localStorage.setItem(CUST_KEY, JSON.stringify(c)); }
+
+let bills = loadBills();
+let customers = loadCustomers();
+let editingBillNo = null;
+
+// ─── UTILS ────────────────────────────────────────────────────────────────────
+const INR = n => '₹' + Number(n).toLocaleString('en-IN', {minimumFractionDigits:2, maximumFractionDigits:2});
+const fmt = d => d ? new Date(d).toLocaleDateString('en-IN') : '—';
+const today = () => new Date().toISOString().split('T')[0];
+const monthsBetween = (a, b) => {
+  if (!a || !b) return 0;
+  const d1 = new Date(a), d2 = new Date(b);
+  return Math.max(1, Math.ceil((d2 - d1) / (1000*60*60*24*30.44)));
+};
+const calcTotal = (p, r, m) => {
+  const interest = (p * r * m) / 100;
+  return { interest: Math.round(interest*100)/100, total: Math.round((p + interest)*100)/100 };
+};
+const isOverdue = (bill) => bill.status === 'active' && new Date(bill.dueDate) < new Date();
+
+function genBillNo() {
+  const all = loadBills();
+  if (!all.length) return 1001;
+  return Math.max(...all.map(b => parseInt(b.billNo))) + 1;
+}
+
+function toast(msg, type='info') {
+  const c = document.getElementById('toast-container');
+  const t = document.createElement('div');
+  t.className = 'toast ' + (type==='error'?'error':type==='success'?'success':'');
+  t.textContent = msg;
+  c.appendChild(t);
+  setTimeout(() => t.remove(), 3000);
+}
+
+// ─── NAV ──────────────────────────────────────────────────────────────────────
+const pageTitles = { dashboard:'Dashboard', newbill:'New Bill', customers:'Customer List', active:'Active Pawns', paid:'Paid Bills', receipt:'Print Receipt', report:'Monthly Report' };
+
+function showPage(id, el) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  if(el) el.classList.add('active');
+  document.getElementById('topbar-title').textContent = pageTitles[id] || '';
+  document.getElementById('sidebar').classList.remove('open');
+  if(id==='dashboard') renderDashboard();
+  if(id==='customers') renderCustomers();
+  if(id==='active') renderActive();
+  if(id==='paid') renderPaid();
+  if(id==='report') initReport();
+  if(id==='newbill') initNewBill();
+}
+
+function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); }
+
+// ─── NEW BILL ─────────────────────────────────────────────────────────────────
+function initNewBill() {
+  document.getElementById('f-billno').value = genBillNo();
+  document.getElementById('f-pawndate').value = today();
+  calcDueDate();
+}
+
+function calcDueDate() {
+  const pd = document.getElementById('f-pawndate').value;
+  if (!pd) return;
+  const d = new Date(pd);
+  d.setMonth(d.getMonth() + 3);
+  document.getElementById('f-duedate').value = d.toISOString().split('T')[0];
+  calcInterest();
+}
+
+function calcInterest() {
+  const p = parseFloat(document.getElementById('f-amount').value) || 0;
+  const r = parseFloat(document.getElementById('f-rate').value) || 0;
+  const pd = document.getElementById('f-pawndate').value;
+  const dd = document.getElementById('f-duedate').value;
+  let m = parseInt(document.getElementById('f-months').value) || monthsBetween(pd, dd);
+  document.getElementById('f-months').value = m || '';
+  if (!p || !r || !m) { document.getElementById('calc-result').style.display='none'; return; }
+  const {interest, total} = calcTotal(p, r, m);
+  document.getElementById('calc-result').style.display='block';
+  document.getElementById('cr-p').textContent = INR(p);
+  document.getElementById('cr-r').textContent = r + '% / month';
+  document.getElementById('cr-m').textContent = m + ' month(s)';
+  document.getElementById('cr-i').textContent = INR(interest);
+  document.getElementById('cr-t').textContent = INR(total);
+}
+
+function clearForm() {
+  ['f-name','f-phone','f-address','f-idproof','f-item','f-weight','f-amount'].forEach(id => document.getElementById(id).value='');
+  document.getElementById('f-rate').value = 3;
+  document.getElementById('f-months').value = '';
+  document.getElementById('f-type').selectedIndex = 0;
+  document.getElementById('calc-result').style.display='none';
+  initNewBill();
+}
+
+function saveBill() {
+  const name = document.getElementById('f-name').value.trim();
+  const phone = document.getElementById('f-phone').value.trim();
+  const item = document.getElementById('f-item').value.trim();
+  const amount = parseFloat(document.getElementById('f-amount').value);
+  const rate = parseFloat(document.getElementById('f-rate').value);
+  const pawnDate = document.getElementById('f-pawndate').value;
+  const dueDate = document.getElementById('f-duedate').value;
+  if (!name || !phone || !item || !amount || !rate || !pawnDate || !dueDate) { toast('Please fill all required fields (*)', 'error'); return; }
+  const months = monthsBetween(pawnDate, dueDate);
+  const {interest, total} = calcTotal(amount, rate, months);
+  const bill = {
+    billNo: document.getElementById('f-billno').value,
+    name, phone,
+    address: document.getElementById('f-address').value,
+    idProof: document.getElementById('f-idproof').value,
+    item,
+    weight: document.getElementById('f-weight').value,
+    type: document.getElementById('f-type').value,
+    amount, rate, months, interest, total,
+    pawnDate, dueDate,
+    status: 'active',
+    createdAt: today()
+  };
+  bills.push(bill);
+  saveBills(bills);
+  upsertCustomer(bill);
+  toast('Bill #' + bill.billNo + ' saved!', 'success');
+  clearForm();
+}
+
+function upsertCustomer(bill) {
+  let custs = loadCustomers();
+  const existing = custs.find(c => c.phone === bill.phone);
+  if (existing) {
+    existing.name = bill.name;
+    existing.address = bill.address;
+    existing.idProof = bill.idProof;
+  } else {
+    custs.push({ name: bill.name, phone: bill.phone, address: bill.address, idProof: bill.idProof });
+  }
+  saveCustomers(custs);
+  customers = custs;
+}
+
+function autocompleteCustomer(val) {
+  if (!val) return;
+  const c = customers.find(c => c.name.toLowerCase().startsWith(val.toLowerCase()));
+  if (c) {
+    document.getElementById('f-phone').value = c.phone;
+    document.getElementById('f-address').value = c.address;
+    document.getElementById('f-idproof').value = c.idProof;
+  }
+}
+
+// ─── DASHBOARD ────────────────────────────────────────────────────────────────
+function renderDashboard() {
+  bills = loadBills();
+  const active = bills.filter(b => b.status === 'active');
+  const paid = bills.filter(b => b.status === 'paid');
+  const overdue = active.filter(isOverdue);
+  const totalLoaned = active.reduce((s,b) => s+b.amount, 0);
+  const totalInterest = active.reduce((s,b) => s+b.interest, 0);
+
+  document.getElementById('stat-grid').innerHTML = `
+    <div class="stat-card"><div class="stat-icon">🔶</div><div class="stat-label">Active Pawns</div><div class="stat-value">${active.length}</div></div>
+    <div class="stat-card"><div class="stat-icon">✅</div><div class="stat-label">Paid Bills</div><div class="stat-value">${paid.length}</div></div>
+    <div class="stat-card"><div class="stat-icon">⚠️</div><div class="stat-label">Overdue</div><div class="stat-value" style="color:var(--danger)">${overdue.length}</div></div>
+    <div class="stat-card"><div class="stat-icon">💰</div><div class="stat-label">Total Loaned</div><div class="stat-value" style="font-size:20px">${INR(totalLoaned)}</div></div>
+    <div class="stat-card"><div class="stat-icon">📈</div><div class="stat-label">Pending Interest</div><div class="stat-value" style="font-size:20px">${INR(totalInterest)}</div></div>
+    <div class="stat-card"><div class="stat-icon">👥</div><div class="stat-label">Customers</div><div class="stat-value">${customers.length}</div></div>
+  `;
+  const recent = [...bills].reverse().slice(0,8);
+  document.getElementById('dashboard-tbody').innerHTML = recent.map(b => `
+    <tr class="${isOverdue(b)?'overdue-highlight':''}">
+      <td class="text-gold">#${b.billNo}</td><td>${b.name}</td><td>${b.item}</td>
+      <td>${INR(b.amount)}</td><td>${INR(b.total)}</td><td>${fmt(b.dueDate)}</td>
+      <td><span class="badge badge-${isOverdue(b)?'overdue':b.status==='paid'?'paid':'active'}">${isOverdue(b)?'Overdue':b.status}</span></td>
+    </tr>`).join('') || '<tr><td colspan="7" style="text-align:center;color:var(--text-dim);padding:30px">No bills yet. Create your first bill!</td></tr>';
+}
+
+// ─── CUSTOMERS ────────────────────────────────────────────────────────────────
+function renderCustomers(filter='') {
+  customers = loadCustomers(); bills = loadBills();
+  const list = filter ? customers.filter(c => c.name.toLowerCase().includes(filter.toLowerCase()) || c.phone.includes(filter)) : customers;
+  document.getElementById('customers-tbody').innerHTML = list.map(c => {
+    const cnt = bills.filter(b => b.phone === c.phone).length;
+    return `<tr>
+      <td>${c.name}</td><td>${c.phone}</td><td>${c.address||'—'}</td><td>${c.idProof||'—'}</td><td>${cnt}</td>
+      <td><button class="btn btn-outline btn-sm" onclick="filterByCustomer('${c.phone}')">View Bills</button></td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="6" style="text-align:center;color:var(--text-dim);padding:30px">No customers yet.</td></tr>';
+}
+function searchCustomers(v) { renderCustomers(v); }
+function filterByCustomer(phone) {
+  showPage('active', document.querySelector('[onclick*=active]'));
+  document.querySelector('#page-active .search-bar input').value = phone;
+  renderActive(phone);
+}
+
+// ─── ACTIVE ───────────────────────────────────────────────────────────────────
+function renderActive(filter='') {
+  bills = loadBills();
+  const active = bills.filter(b => b.status==='active' && (
+    !filter || b.name.toLowerCase().includes(filter.toLowerCase()) || String(b.billNo).includes(filter) || b.phone.includes(filter)
+  ));
+  document.getElementById('active-tbody').innerHTML = active.map(b => `
+    <tr class="${isOverdue(b)?'overdue-highlight':''}">
+      <td class="text-gold">#${b.billNo}</td><td>${b.name}<br><span class="text-dim">${b.phone}</span></td>
+      <td>${b.item}<br><span class="text-dim">${b.weight?b.weight+'g':''}</span></td>
+      <td>${b.type}</td><td>${INR(b.amount)}</td><td>${INR(b.interest)}</td><td>${INR(b.total)}</td>
+      <td>${fmt(b.pawnDate)}</td><td>${fmt(b.dueDate)}</td>
+      <td><span class="badge badge-${isOverdue(b)?'overdue':'active'}">${isOverdue(b)?'Overdue':'Active'}</span></td>
+      <td>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <button class="btn btn-outline btn-sm" onclick="openEdit('${b.billNo}')">✏️</button>
+          <button class="btn btn-success btn-sm" onclick="markPaid('${b.billNo}')">✅ Paid</button>
+          <button class="btn btn-outline btn-sm" onclick="loadReceiptByNo('${b.billNo}')">🖨️</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteBill('${b.billNo}')">🗑️</button>
+        </div>
+      </td>
+    </tr>`).join('') || '<tr><td colspan="11" style="text-align:center;color:var(--text-dim);padding:30px">No active pawns.</td></tr>';
+}
+function searchActive(v) { renderActive(v); }
+
+function markPaid(billNo) {
+  if (!confirm('Mark bill #'+billNo+' as Paid?')) return;
+  const idx = bills.findIndex(b => String(b.billNo)===String(billNo));
+  if(idx>-1) { bills[idx].status='paid'; bills[idx].paidDate=today(); saveBills(bills); renderActive(); toast('Bill #'+billNo+' marked as Paid ✅','success'); }
+}
+
+function deleteBill(billNo) {
+  if (!confirm('Delete bill #'+billNo+'? This cannot be undone.')) return;
+  bills = bills.filter(b => String(b.billNo)!==String(billNo));
+  saveBills(bills);
+  renderActive();
+  toast('Bill deleted.', 'error');
+}
+
+// ─── PAID ─────────────────────────────────────────────────────────────────────
+function renderPaid(filter='') {
+  bills = loadBills();
+  const paid = bills.filter(b => b.status==='paid' && (!filter || b.name.toLowerCase().includes(filter.toLowerCase()) || String(b.billNo).includes(filter)));
+  document.getElementById('paid-tbody').innerHTML = paid.map(b => `
+    <tr>
+      <td class="text-gold">#${b.billNo}</td><td>${b.name}</td><td>${b.item}</td>
+      <td>${INR(b.amount)}</td><td>${INR(b.interest)}</td><td>${INR(b.total)}</td><td>${fmt(b.paidDate)}</td>
+      <td>
+        <button class="btn btn-outline btn-sm" onclick="loadReceiptByNo('${b.billNo}')">🖨️ Print</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteBill('${b.billNo}')">🗑️</button>
+      </td>
+    </tr>`).join('') || '<tr><td colspan="8" style="text-align:center;color:var(--text-dim);padding:30px">No paid bills.</td></tr>';
+}
+function searchPaid(v) { renderPaid(v); }
+
+// ─── EDIT ─────────────────────────────────────────────────────────────────────
+function openEdit(billNo) {
+  editingBillNo = billNo;
+  const b = bills.find(b => String(b.billNo)===String(billNo));
+  if(!b) return;
+  ['name','phone','address','item','weight','amount','rate','pawndate','duedate'].forEach(f => {
+    const el = document.getElementById('e-'+f);
+    if(el) el.value = b[f.replace('pawndate','pawnDate').replace('duedate','dueDate')] || '';
+  });
+  document.getElementById('e-type').value = b.type;
+  calcEditInterest();
+  document.getElementById('edit-modal').classList.add('open');
+}
+
+function calcEditInterest() {
+  const p = parseFloat(document.getElementById('e-amount').value)||0;
+  const r = parseFloat(document.getElementById('e-rate').value)||0;
+  const pd = document.getElementById('e-pawndate').value;
+  const dd = document.getElementById('e-duedate').value;
+  const m = monthsBetween(pd, dd);
+  if(!p||!r||!m) return;
+  const {interest,total} = calcTotal(p,r,m);
+  document.getElementById('e-cr-i').textContent = INR(interest);
+  document.getElementById('e-cr-t').textContent = INR(total);
+}
+
+function saveEdit() {
+  const idx = bills.findIndex(b => String(b.billNo)===String(editingBillNo));
+  if(idx===-1) return;
+  const p = parseFloat(document.getElementById('e-amount').value)||0;
+  const r = parseFloat(document.getElementById('e-rate').value)||0;
+  const pd = document.getElementById('e-pawndate').value;
+  const dd = document.getElementById('e-duedate').value;
+  const m = monthsBetween(pd, dd);
+  const {interest,total} = calcTotal(p,r,m);
+  Object.assign(bills[idx], {
+    name: document.getElementById('e-name').value,
+    phone: document.getElementById('e-phone').value,
+    address: document.getElementById('e-address').value,
+    item: document.getElementById('e-item').value,
+    weight: document.getElementById('e-weight').value,
+    type: document.getElementById('e-type').value,
+    amount: p, rate: r, months: m, interest, total,
+    pawnDate: pd, dueDate: dd
+  });
+  saveBills(bills);
+  upsertCustomer(bills[idx]);
+  closeModal('edit-modal');
+  renderActive();
+  toast('Bill #'+editingBillNo+' updated!','success');
+}
+
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+// ─── RECEIPT ──────────────────────────────────────────────────────────────────
+function loadReceipt(val) {
+  const b = bills.find(b => String(b.billNo)===String(val.trim()));
+  if(!b) { document.getElementById('receipt-body').innerHTML='<div style="text-align:center;color:var(--text-dim);padding:30px">Bill not found</div>'; return; }
+  renderReceiptCard(b);
+}
+
+function loadReceiptByNo(billNo) {
+  showPage('receipt', document.querySelector('[onclick*=receipt]'));
+  document.getElementById('receipt-search').value = billNo;
+  setTimeout(()=>loadReceipt(billNo), 50);
+}
+
+function renderReceiptCard(b) {
+  document.getElementById('rec-date').textContent = 'Issued: ' + fmt(today());
+  document.getElementById('receipt-body').innerHTML = `
+    <div class="receipt-row"><span>Bill Number</span><strong>#${b.billNo}</strong></div>
+    <div class="receipt-row"><span>Customer Name</span><strong>${b.name}</strong></div>
+    <div class="receipt-row"><span>Phone</span><span>${b.phone}</span></div>
+    <div class="receipt-row"><span>Address</span><span>${b.address||'—'}</span></div>
+    <div class="receipt-row"><span>ID Proof</span><span>${b.idProof||'—'}</span></div>
+    <div style="height:12px"></div>
+    <div class="receipt-row"><span>Item</span><strong>${b.item}</strong></div>
+    <div class="receipt-row"><span>Type</span><span>${b.type}</span></div>
+    <div class="receipt-row"><span>Weight</span><span>${b.weight?b.weight+' g':'—'}</span></div>
+    <div class="receipt-row"><span>Pawn Date</span><span>${fmt(b.pawnDate)}</span></div>
+    <div class="receipt-row"><span>Due Date</span><span>${fmt(b.dueDate)}</span></div>
+    <div style="height:12px"></div>
+    <div class="receipt-row"><span>Principal Amount</span><span>${INR(b.amount)}</span></div>
+    <div class="receipt-row"><span>Interest Rate</span><span>${b.rate}% / month × ${b.months} months</span></div>
+    <div class="receipt-row"><span>Interest Amount</span><span>${INR(b.interest)}</span></div>
+    <div class="receipt-total"><span>TOTAL AMOUNT</span><span>${INR(b.total)}</span></div>
+    <div class="receipt-footer">
+      <div style="margin-top:12px">Status: <strong>${b.status.toUpperCase()}</strong>${b.paidDate?' | Paid: '+fmt(b.paidDate):''}</div>
+      <div style="margin-top:8px">Thank you for your trust — GoldVault Pawn Broker</div>
+    </div>`;
+}
+
+function printReceipt() { window.print(); }
+
+// ─── REPORT ───────────────────────────────────────────────────────────────────
+function initReport() {
+  const sel = document.getElementById('report-month');
+  sel.innerHTML = '';
+  const months = [];
+  const now = new Date();
+  for(let i=0;i<12;i++) {
+    const d = new Date(now.getFullYear(), now.getMonth()-i, 1);
+    months.push({val: d.toISOString().slice(0,7), label: d.toLocaleString('en-IN',{month:'long',year:'numeric'})});
+  }
+  months.forEach(m => { const o = document.createElement('option'); o.value=m.val; o.textContent=m.label; sel.appendChild(o); });
+  renderReport();
+}
+
+function renderReport() {
+  bills = loadBills();
+  const month = document.getElementById('report-month').value;
+  const filtered = bills.filter(b => b.pawnDate && b.pawnDate.startsWith(month));
+  const active = filtered.filter(b=>b.status==='active');
+  const paid = filtered.filter(b=>b.status==='paid');
+  const totalAmount = filtered.reduce((s,b)=>s+b.amount,0);
+  const totalInterest = filtered.reduce((s,b)=>s+b.interest,0);
+  document.getElementById('report-body').innerHTML = `
+    <div class="stat-grid" style="margin-bottom:0">
+      <div class="stat-card"><div class="stat-label">Bills This Month</div><div class="stat-value">${filtered.length}</div></div>
+      <div class="stat-card"><div class="stat-label">Active</div><div class="stat-value">${active.length}</div></div>
+      <div class="stat-card"><div class="stat-label">Paid</div><div class="stat-value">${paid.length}</div></div>
+      <div class="stat-card"><div class="stat-label">Total Loaned</div><div class="stat-value" style="font-size:18px">${INR(totalAmount)}</div></div>
+      <div class="stat-card"><div class="stat-label">Total Interest</div><div class="stat-value" style="font-size:18px">${INR(totalInterest)}</div></div>
+    </div>`;
+
+  // Item type breakdown
+  const typeMap = {};
+  filtered.forEach(b => { typeMap[b.type] = (typeMap[b.type]||0) + b.amount; });
+  const maxAmt = Math.max(...Object.values(typeMap), 1);
+  const barsHtml = Object.entries(typeMap).map(([k,v]) => `
+    <div class="bar-row">
+      <div class="bar-label">${k}</div>
+      <div class="bar-track"><div class="bar-fill" style="width:${(v/maxAmt*100).toFixed(1)}%"><span class="bar-val">${INR(v)}</span></div></div>
+    </div>`).join('');
+
+  document.getElementById('report-charts').innerHTML = `
+    <div class="report-card">
+      <div class="section-title" style="margin-bottom:10px">💍 Amount by Item Type</div>
+      <div class="bar-chart">${barsHtml||'<div style="color:var(--text-dim)">No data</div>'}</div>
+    </div>
+    <div class="report-card">
+      <div class="section-title" style="margin-bottom:12px">📋 Bill Summary</div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Bill</th><th>Name</th><th>Item</th><th>Amount</th><th>Total</th><th>Status</th></tr></thead>
+        <tbody>${filtered.map(b=>`<tr><td>#${b.billNo}</td><td>${b.name}</td><td>${b.item}</td><td>${INR(b.amount)}</td><td>${INR(b.total)}</td><td><span class="badge badge-${isOverdue(b)?'overdue':b.status==='paid'?'paid':'active'}">${isOverdue(b)?'Overdue':b.status}</span></td></tr>`).join('')||'<tr><td colspan="6" style="color:var(--text-dim);text-align:center;padding:20px">No bills this month</td></tr>'}</tbody>
+      </table></div>
+    </div>`;
+}
+
+function downloadReport() {
+  const month = document.getElementById('report-month').value;
+  const filtered = bills.filter(b => b.pawnDate && b.pawnDate.startsWith(month));
+  const header = 'Bill No,Name,Phone,Item,Type,Weight,Amount,Rate,Months,Interest,Total,Pawn Date,Due Date,Status\n';
+  const rows = filtered.map(b => [b.billNo,b.name,b.phone,b.item,b.type,b.weight||'',b.amount,b.rate,b.months,b.interest,b.total,b.pawnDate,b.dueDate,b.status].join(',')).join('\n');
+  const blob = new Blob([header+rows], {type:'text/csv'});
+  const a = document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='GoldVault_Report_'+month+'.csv'; a.click();
+  toast('Report downloaded!','success');
+}
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+document.getElementById('topbar-date').textContent = new Date().toLocaleDateString('en-IN',{weekday:'short',year:'numeric',month:'short',day:'numeric'});
+initNewBill();
+renderDashboard();
+
+// Seed demo data if empty
+if(!bills.length) {
+  const demo = [
+    {billNo:1001,name:'Ravi Kumar',phone:'9876543210',address:'12 Gandhi Street, Chennai',idProof:'ABCD1234X',item:'Gold Ring',weight:'8.5',type:'Gold 22K',amount:10000,rate:3,months:5,interest:1500,total:11500,pawnDate:'2025-01-10',dueDate:'2025-06-10',status:'active',createdAt:'2025-01-10'},
+    {billNo:1002,name:'Priya Devi',phone:'9123456789',address:'45 Nehru Nagar, Bangalore',idProof:'EFGH5678Y',item:'Silver Chain',weight:'50',type:'Silver',amount:5000,rate:2,months:3,interest:300,total:5300,pawnDate:'2025-02-05',dueDate:'2025-05-05',status:'paid',paidDate:'2025-05-04',createdAt:'2025-02-05'},
+    {billNo:1003,name:'Suresh M',phone:'9988776655',address:'7 MG Road, Coimbatore',idProof:'IJKL9012Z',item:'Gold Bangle',weight:'15',type:'Gold 18K',amount:18000,rate:3,months:4,interest:2160,total:20160,pawnDate:'2025-01-20',dueDate:'2025-05-20',status:'active',createdAt:'2025-01-20'},
+  ];
+  demo.forEach(b => {
+    bills.push(b);
+    upsertCustomer(b);
+  });
+  saveBills(bills);
+  renderDashboard();
+}
+</script>
+</body>
+</html>
